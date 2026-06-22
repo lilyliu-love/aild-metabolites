@@ -7,19 +7,19 @@ This repository contains all analytical code supporting our multicenter cohort s
 We systematically characterized serum glycerophospholipid/choline metabolic axis reprogramming across three AILD subtypes (AIH, PBC, overlap syndrome [OS]) and Ludwig PBC disease stages, then constructed integrated metabolomic clinical explainable machine learning models for non-invasive AILD differential diagnosis and PBC progression staging.
 
 # Study core design:
-1.9-center discovery cohort (n=722) + independent 8-center external validation cohort<br>  
-2.Untargeted metabolomics: 273 non-lipid metabolites + 2133 lipid species quantification<br>  
-3.Multi-dimensional stratified screening for core differential metabolites<br> 
-4.KEGG pathway enrichment analysis of stage/subtype-specific metabolic signatures<br>  
-5.Interpretable ML models (Logistic Regression, LASSO, Random Forest) with SHAP & LIME feature interpretation<br>  
-6.Cross-center performance validation & overfitting evaluation<br>  
+1.9-center discovery cohort (n=722) + independent 8-center external validation cohort<br>
+2.Untargeted metabolomics: 273 non-lipid metabolites + 2133 lipid species quantification<br>
+3.Multi-dimensional stratified screening for core differential metabolites<br>
+4.KEGG pathway enrichment analysis of stage/subtype-specific metabolic signatures<br>
+5.Interpretable ML models (Logistic Regression, LASSO, Random Forest) with SHAP & LIME feature interpretation<br>
+6.Cross-center performance validation & overfitting evaluation<br>
 
 # Repository Content
-├── 01_AILDg_diagnosis      # Four ML algorithms, 5-fold cross-validation, visualization for aild diagnosis<br>  
-├── 02_PBC_staging/         # Four ML algorithms, 5-fold cross-validation, visualization for pbc staging<br>  
-├── utils/                  # Shared custom plotting & statistical functions<br>  
-├── demo_data/              # De-identified simulated sample data (no real patient clinical data)<br>  
-├── environment.yml         # Conda environment configuration for reproducibility<br>  
+├── 01_AILDg_diagnosis      # Four ML algorithms, 5-fold cross-validation, visualization for aild diagnosis<br>
+├── 02_PBC_staging/         # Four ML algorithms, 5-fold cross-validation, visualization for pbc staging<br>
+├── utils/                  # Shared custom plotting & statistical functions<br>
+├── demo_data/              # De-identified simulated sample data (no real patient clinical data)<br>
+├── environment.yml         # Conda environment configuration for reproducibility<br>
 └── README.md
 
 # Dependencies 
