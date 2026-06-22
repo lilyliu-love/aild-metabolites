@@ -15,7 +15,7 @@ We systematically characterized serum glycerophospholipid/choline metabolic axis
 6.Cross-center performance validation & overfitting evaluation<br>
 
 # Repository Content
-├── 01_AILDg_diagnosis      # Four ML algorithms, 5-fold cross-validation, visualization for aild diagnosis<br>
+├── 01_AILD_diagnosis      # Four ML algorithms, 5-fold cross-validation, visualization for aild diagnosis<br>
 ├── 02_PBC_staging/         # Four ML algorithms, 5-fold cross-validation, visualization for pbc staging<br>
 ├── utils/                  # Shared custom plotting & statistical functions<br>
 ├── demo_data/              # De-identified simulated sample data (no real patient clinical data)<br>
