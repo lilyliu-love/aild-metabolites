@@ -82,7 +82,7 @@ def parse_args():
         description='Autoimmune Liver Disease Diagnostic Model Pipeline (Binary: early/late)')
 
     # 基本配置
-    parser.add_argument('--excel_path', type=str, default="./Stage_metabolism_analysis_updated.xlsx",
+    parser.add_argument('--excel_path', type=str, default="./pbc_metabolism_demo.xlsx",
                         help='Excel文件路径')
     parser.add_argument('--n_selected', type=int, default=7,
                         help='最终选择的特征数量')
@@ -211,7 +211,7 @@ LIVER_FUNCTION_FEATURES = [
 
 BASIC_FEATURES = []  # ['Sex', 'Age', 'BMI']
 CLINICAL_FEATURES = ANTIBODY_FEATURES + LIVER_FUNCTION_FEATURES + BASIC_FEATURES
-BILE_ACID_FEATURES_RANGE = (0, 24)  # 胆汁酸代谢物列范围（前24列）
+BILE_ACID_FEATURES_RANGE = (0, 24)  # 非脂质代谢物列范围（前24列）
 LIPID_FEATURES_RANGE = (24, 136)  # 脂质代谢物列范围（第24-136列）
 
 
@@ -563,7 +563,7 @@ class MedicalDataAnalyzer:
         }, inplace=True)
         self.train_data = self.raw_data[self.raw_data['dataset_type'] == 'Discovery'].copy()
         self.val_data = self.raw_data[self.raw_data['dataset_type'] == 'Validation'].copy()
-        self.feature_columns = self.raw_data.columns[3:-7].tolist()
+        self.feature_columns = self.raw_data.columns[2:].tolist()
 
         # 定义特征类型列表
         start_lipid, end_lipid = LIPID_FEATURES_RANGE
@@ -965,9 +965,9 @@ class MedicalDataAnalyzer:
 
     def _group_standardization(self, df, is_train=True):
         """
-        脂质/胆汁酸分组标准化核心方法
+        脂质/非脂质分组标准化核心方法
         """
-        # 1. 划分脂质/胆汁酸/临床特征列
+        # 1. 划分脂质/非脂质/临床特征列
         lipid_cols = [f for f in self.lipid_features if f in df.columns]
         bile_acid_cols = [f for f in self.bile_acid_features if f in df.columns]
         clinical_cols = [f for f in self.clinical_features if f in df.columns]
@@ -987,7 +987,7 @@ class MedicalDataAnalyzer:
                                                                      None if is_train else self.lipid_stats)
             df_std[lipid_cols] = lipid_std
 
-        # 4. 胆汁酸类标准化
+        # 4. 非脂质类标准化
         if len(bile_acid_cols) > 0:
             if self.group_std_method == 'auto_scaling':
                 bile_std, self.bile_acid_stats = self._auto_scaling(df[bile_acid_cols],
@@ -2613,7 +2613,7 @@ class MedicalDataAnalyzer:
                 # 按特征类型分配颜色
                 def get_feat_color(fname):
                     if fname in (self.bile_acid_features or []):
-                        return COLOR_PALETTE['bile_acid']   # 紫色：胆汁酸
+                        return COLOR_PALETTE['bile_acid']   # 紫色：非脂质
                     elif fname in (self.lipid_features or []):
                         return COLOR_PALETTE['lipid']       # 蓝色：脂质
                     else:
