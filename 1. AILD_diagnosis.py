@@ -71,7 +71,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Autoimmune Liver Disease Diagnostic Model Pipeline')
 
     # 基本配置
-    parser.add_argument('--excel_path', type=str, default="./metabolism_analysis_updated_IgMold.xlsx",   #./metabolism_analysis_updated_IgMold.xlsx
+    parser.add_argument('--excel_path', type=str, default="./aild_metabolism_demo.xlsx",   #./metabolism_analysis_updated_IgMold.xlsx
                         help='Excel文件路径')
     parser.add_argument('--n_selected', type=int, default=11,
                         help='最终选择的特征数量')
@@ -204,7 +204,7 @@ LIVER_FUNCTION_FEATURES = [
 BASIC_FEATURES = [] #['Sex', 'Age', 'BMI']
 CLINICAL_FEATURES = ANTIBODY_FEATURES + LIVER_FUNCTION_FEATURES + BASIC_FEATURES
 LIPID_FEATURES_RANGE = (0, 755)  # 脂质代谢物列范围
-BILE_ACID_FEATURES_RANGE = (755, 866)  # 胆汁酸代谢物列范围
+BILE_ACID_FEATURES_RANGE = (755, 866)  # 非脂质代谢物列范围
 
 
 # ====================== Logging Configuration ======================
@@ -591,7 +591,7 @@ class MedicalDataAnalyzer:
         }, inplace=True)
         self.train_data = self.raw_data[self.raw_data['dataset_type'] == 'Discovery'].copy()
         self.val_data = self.raw_data[self.raw_data['dataset_type'] == 'Validation'].copy()
-        self.feature_columns = self.raw_data.columns[3:-7].tolist()
+        self.feature_columns = self.raw_data.columns[2:].tolist()
 
         # 定义特征类型列表
         start_lipid, end_lipid = LIPID_FEATURES_RANGE
@@ -925,9 +925,9 @@ class MedicalDataAnalyzer:
 
     def _group_standardization(self, df, is_train=True):
         """
-        脂质/胆汁酸分组标准化核心方法
+        脂质/非脂质分组标准化核心方法
         """
-        # 1. 划分脂质/胆汁酸/临床特征列
+        # 1. 划分脂质/非脂质/临床特征列
         lipid_cols = [f for f in self.lipid_features if f in df.columns]
         bile_acid_cols = [f for f in self.bile_acid_features if f in df.columns]
         clinical_cols = [f for f in self.clinical_features if f in df.columns]
@@ -947,7 +947,7 @@ class MedicalDataAnalyzer:
                                                                      None if is_train else self.lipid_stats)
             df_std[lipid_cols] = lipid_std
 
-        # 4. 胆汁酸类标准化
+        # 4. 非脂质标准化
         if len(bile_acid_cols) > 0:
             if self.group_std_method == 'auto_scaling':
                 bile_std, self.bile_acid_stats = self._auto_scaling(df[bile_acid_cols],
@@ -1498,7 +1498,7 @@ class MedicalDataAnalyzer:
                 bile_count_tracker['ANOVA Filter'] = 0
                 logger.warning("No bile acid features left after variance filter, skip Kruskal-Wallis")
 
-            # Correlation reduction (r<0.8) - 修复语法错误
+            # Correlation reduction (r<0.8) 
             if len(bile_names) > 1:
                 corr_matrix = pd.DataFrame(X_train_bile, columns=bile_names).corr()
                 drop_cols = set()
@@ -1518,7 +1518,7 @@ class MedicalDataAnalyzer:
 
             # Keep top 20 bile acid features - 保持不变
             if len(bile_names) > 20:
-                # 重新计算筛选后的胆汁酸方差（避免使用原始方差）
+                # 重新计算筛选后的非脂质方差（避免使用原始方差）
                 # current_bile_var = np.var(pd.DataFrame(X_train_bile, columns=bile_names), axis=0)
                 bile_var_series = pd.Series(bile_var, index=valid_bile_cols).sort_values(ascending=False)
                 bile_names = bile_var_series[bile_var_series.index.isin(bile_names)].head(20).index.tolist()
@@ -1528,7 +1528,7 @@ class MedicalDataAnalyzer:
             elif len(bile_names) < 10 and len(valid_bile_cols) > len(bile_names):
                 bile_count_tracker['Top 20 Selection'] = len(bile_names)
                 logger.warning("Bile acid features <10, supplementing high variance features")
-                # 补充高方差但未被选中的胆汁酸特征
+                # 补充高方差但未被选中的非脂质特征
                 all_bile_var = np.var(self.X_train_reduced[:, bile_indices], axis=0) if len(
                     bile_indices) > 0 else np.array([])
                 bile_var_series = pd.Series(all_bile_var, index=valid_bile_cols).sort_values(ascending=False)
@@ -1611,7 +1611,7 @@ class MedicalDataAnalyzer:
         }
         bile_vals = [bile_counts[bile_steps_mapping[step]] for step in steps]
 
-        # 如果脂质和胆汁酸特征都为0（如 clinical_only 模式），跳过绘图
+        # 如果脂质和非脂质特征都为0（如 clinical_only 模式），跳过绘图
         if max(lipid_vals + bile_vals) == 0:
             logger.warning("All lipid/bile acid feature counts are 0, skip feature count change plot")
             return
@@ -3643,7 +3643,7 @@ class MedicalDataAnalyzer:
         # 按特征类型着色
         def get_feat_color(fname):
             if fname in (self.bile_acid_features or []):
-                return COLOR_PALETTE['val']       # 紫色：胆汁酸
+                return COLOR_PALETTE['val']       # 紫色：非脂质
             elif fname in (self.lipid_features or []):
                 return COLOR_PALETTE['train']     # 蓝色：脂质
             else:
@@ -5533,85 +5533,6 @@ class MedicalDataAnalyzer:
         )
         logger.info("OS stratified analysis (by PBC+AIH autoantibody) plots and results saved")
 
-    # def write_predictions_to_excel(self):
-    #     """将模型预测结果写入原始Excel并保存新文件到结果目录"""
-    #     logger.info("\nWriting prediction results back to original Excel sheet...")
-    #
-    #     # 1. 准备最佳模型的预测结果（训练集+验证集）
-    #     top_indices = [self.reduced_feature_names.index(f) for f in self.top_features if
-    #                    f in self.reduced_feature_names]
-    #
-    #     # 训练集预测
-    #     X_train_top = self.X_train_reduced[:, top_indices]
-    #     train_pred = self.best_model.predict(X_train_top)
-    #     train_pred_proba = self.best_model.predict_proba(X_train_top)
-    #
-    #     # 验证集预测
-    #     X_val_top = self.X_val_reduced[:, top_indices]
-    #     val_pred = self.best_model.predict(X_val_top)
-    #     val_pred_proba = self.best_model.predict_proba(X_val_top)
-    #
-    #     # 2. 映射预测标签到类别名称（AIH/PBC/OS/CTR）
-    #     train_pred_names = [self.class_name_mapping[p] for p in train_pred]
-    #     val_pred_names = [self.class_name_mapping[p] for p in val_pred]
-    #
-    #     # 3. 给原始数据添加预测列
-    #     # 训练集添加预测结果
-    #     train_data_with_pred = self.train_data.copy()
-    #     train_data_with_pred['ML_Predicted_Label'] = train_pred
-    #     train_data_with_pred['ML_Predicted_Class'] = train_pred_names
-    #     # 添加各类别概率列
-    #     for i, cls_name in enumerate(self.class_names):
-    #         train_data_with_pred[f'ML_Prob_{cls_name}'] = train_pred_proba[:, i]
-    #
-    #     # 验证集添加预测结果
-    #     val_data_with_pred = self.val_data.copy()
-    #     val_data_with_pred['ML_Predicted_Label'] = val_pred
-    #     val_data_with_pred['ML_Predicted_Class'] = val_pred_names
-    #     for i, cls_name in enumerate(self.class_names):
-    #         val_data_with_pred[f'ML_Prob_{cls_name}'] = val_pred_proba[:, i]
-    #
-    #     # 4. 合并训练/验证集并匹配原始数据顺序（按patient_id）
-    #     combined_pred = pd.concat([train_data_with_pred, val_data_with_pred], ignore_index=True)
-    #     raw_data_with_pred = self.raw_data.merge(
-    #         combined_pred[['patient_id', 'ML_Predicted_Label', 'ML_Predicted_Class'] +
-    #                       [f'ML_Prob_{cls_name}' for cls_name in self.class_names]],
-    #         on='patient_id', how='left'
-    #     )
-    #
-    #     # 5. 保存新Excel文件到结果目录
-    #     output_excel_path = os.path.join(
-    #         self.save_root, self.results_dir,
-    #         f'prediction_results_{self.dimension_reduction_method}_{self.feature_selection_method}_{self.feature_type_filter}.xlsx'
-    #     )
-    #
-    #     # 写入原sheet（analysis_2_584）+ 新增汇总sheet
-    #     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-    #         # 原sheet保留所有列 + 预测列
-    #         raw_data_with_pred.to_excel(writer, sheet_name='analysis_2_584', index=False)
-    #
-    #         # 新增预测汇总sheet（更易查看）
-    #         prediction_summary = pd.DataFrame({
-    #             'Patient_ID': raw_data_with_pred['patient_id'],
-    #             'Dataset_Type': raw_data_with_pred['dataset_type'],
-    #             'True_Label': raw_data_with_pred['group_label'],
-    #             'True_Class': [self.class_name_mapping.get(l - self.label_offset, 'Unknown')
-    #                            for l in raw_data_with_pred['group_label']],
-    #             'ML_Predicted_Label': raw_data_with_pred['ML_Predicted_Label'],
-    #             'ML_Predicted_Class': raw_data_with_pred['ML_Predicted_Class'],
-    #             **{f'ML_Prob_{cls_name}': raw_data_with_pred[f'ML_Prob_{cls_name}']
-    #                for cls_name in self.class_names}
-    #         })
-    #         # 计算预测准确率
-    #         correct_pred = (
-    #             (raw_data_with_pred['group_label'] - self.label_offset) == raw_data_with_pred['ML_Predicted_Label']
-    #         ).fillna(False)
-    #         prediction_summary['Is_Correct'] = correct_pred
-    #         prediction_summary.to_excel(writer, sheet_name='Prediction_Summary', index=False)
-    #
-    #     logger.info(f"✅ 预测结果已保存至: {output_excel_path}")
-    #     logger.info(f"📊 整体预测准确率: {correct_pred.sum() / len(correct_pred):.4f} (排除缺失值)")
-    #     logger.info(f"📈 有效预测样本数: {len(raw_data_with_pred.dropna(subset=['ML_Predicted_Class']))}")
 
     def write_predictions_to_excel(self):
         """将模型预测结果 AND 临床指南诊断结果写入原始Excel并保存新文件到结果目录"""
